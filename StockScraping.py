@@ -16,7 +16,7 @@ cur.execute("select symbol from stocksymbol")
 rows = cur.fetchall()
 for (symbol,) in rows:
     print(ystockquote.get_price(symbol))
-print("test")
+
 #print(ystockquote.get_all('GOOG'))
 #print(ystockquote.get_historical_prices('GOOG', '2015-01-01', '2015-02-01'))
 
