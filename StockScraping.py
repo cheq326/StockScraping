@@ -4,11 +4,11 @@ import mysql.connector
 import sys
 import urllib.request
 import re
-import ystockquote
 import datetime
 import json
 from threading import Thread
-
+import YahooFinance
+import json
 gmap = {}
 
 def requestThread(symbol):
@@ -24,12 +24,7 @@ def requestThread(symbol):
 
 urls = "http://google.com http://cnn.com".split()
 threadList = []
-for url in urls:
-    t = Thread(target=requestThread, args=(url,))
-    t.start()
-    threadList.append(t)
-for b in threadList:
-        b.join()
+
 
 db = mysql.connector.connect(host="localhost", # your host, usually localhost
                      user="chenq", # your username
@@ -42,35 +37,59 @@ for key in gmap.keys():
     cur.execute(query)
     symbolList = cur.fetchall()
 
-
-#read tickers from txt file
-# symbolList = open("symbols.txt").read()
-# symbolList = symbolList.split("\n")
-
-# db = mysql.connector.connect(host="localhost", # your host, usually localhost
-#                      user="chenq", # your username
-#                       passwd="admin", # your password
-#                       db="test") # name of the data base
-#
-# cur = db.cursor()
-# cur.execute("select symbol from stock_symbol")
-# symbolList = cur.fetchall()
-# start_date = (datetime.datetime.today() - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
+cur = db.cursor()
+cur.execute("select symbol from stock_symbol")
+symbolList = cur.fetchall()
+start_date = (datetime.datetime.today() - datetime.timedelta(days=3)).strftime('%Y-%m-%d')
 # print (start_date)
-# end_date = datetime.datetime.today().strftime('%Y-%m-%d')
+end_date = datetime.datetime.today().strftime('%Y-%m-%d')
 # print(end_date)
-#
+data = YahooFinance._request_yahoo('test')
+# print(data)
+# print(json.loads(data)["query"]["results"]["quote"])
+
+json_data = json.loads(data)
+
+result_count = json_data["query"]["count"]
+query_date = json_data["query"]["created"]
+print(result_count)
+print(query_date)
+cursor = db.cursor()
+for quote in json_data["query"]["results"]["quote"]:
+    for key in quote:
+        print(str(key) + ": " + str(quote[key]))
+        columns = "'" + "', '".join(quote.keys())
+        placeholders = ':'+', :'.join(quote.keys())
+
+    query = 'INSERT INTO stock_data (%s) VALUES (%s)' % (columns + "'", placeholders)
+    print(query)
+    cur.execute(query, quote)
+
+        # variable_1 = "HELLO"
+        # variable_2 = "ADIOS"
+        # varlist = [variable_1,variable_2]
+        # var_string = ', '.join('?' * len(varlist))
+        # query_string = 'INSERT INTO table VALUES (%s);' % var_string
+        # cursor.execute(query_string, varlist)
+
 # for (symbol,) in symbolList:
-#     #htmlText = urllib.urlopen("http://www.bloomberg.com/markets/chart/data/1D/" + symbol + ":US")
-#     #data = json.load(htmlText)
-#     #datapoint = data["data_values"]
-#     #for point in datapoints:
-#     #   print "symbol", symbol, "time", point[0], "price", point[1]
+#     for url in urls:
+#     t = Thread(target=requestThread, args=(url,))
+#     t.start()
+#     threadList.append(t)
+#     for b in threadList:
+#             b.join()
 #
-#     #myFile = open("stock_price/daily_prices/" + symbol + ".txt", "a"
-#     #for point in datapoints:
-#     #   myFile.write(str(symbol + "," + str(point[0] + "," + str(point[1] + "\n")))
-#     #myFile.close()
+#     # htmlText = urllib.urlopen("http://www.bloomberg.com/markets/chart/data/1D/" + symbol + ":US")
+#     data = json.load(htmlText)
+#     datapoint = data["data_values"]
+#     for point in datapoints:
+#       print "symbol", symbol, "time", point[0], "price", point[1]
+#
+#     myFile = open("stock_price/daily_prices/" + symbol + ".txt", "a"
+#     for point in datapoints:
+#       myFile.write(str(symbol + "," + str(point[0] + "," + str(point[1] + "\n")))
+#     myFile.close()
 #
 #     data = ystockquote.get_historical_prices(symbol, start_date, end_date)
 #     for (date, dailyData) in data.items():
