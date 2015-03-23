@@ -1,7 +1,4 @@
 import os
-
-__author__ = 'Dennis'
-
 import mysql.connector
 import sys
 import urllib.request
@@ -11,6 +8,7 @@ import json
 from threading import Thread
 import YahooFinance
 import json
+
 gmap = {}
 
 def ensure_dir(f):
