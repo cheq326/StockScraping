@@ -1,3 +1,5 @@
+import os
+
 __author__ = 'Dennis'
 
 import mysql.connector
@@ -10,6 +12,15 @@ from threading import Thread
 import YahooFinance
 import json
 gmap = {}
+
+def ensure_dir(f):
+    # d = os.path.dirname(f)
+    if not os.path.exists(f):
+        os.makedirs(f)
+
+def make_filename(ticker_symbol, directory):
+    ensure_dir(directory)
+    return directory + "/" + ticker_symbol + ".csv"
 
 def requestThread(symbol):
     yahooFinanceUrl = "http://finance.yahoo.com/1?s=" + symbol
@@ -29,7 +40,7 @@ threadList = []
 db = mysql.connector.connect(host="localhost", # your host, usually localhost
                      user="chenq", # your username
                       passwd="admin", # your password
-                      db="test") # name of the data base
+                      db="stock") # name of the data base
 
 for key in gmap.keys():
     query = "insert into stock_symbol (symbol, last) values(" + "'" + key + "'," + gmap[key] + ")"
@@ -56,14 +67,20 @@ print(result_count)
 print(query_date)
 cursor = db.cursor()
 for quote in json_data["query"]["results"]["quote"]:
+    content = ""
     for key in quote:
-        print(str(key) + ": " + str(quote[key]))
-        columns = "'" + "', '".join(quote.keys())
-        placeholders = ':'+', :'.join(quote.keys())
+        if str(key) != 'symbol':
+            print(str(key) + ": " + str(quote[key]))
+            content = content + str(key) + ":" + str(quote[key]) + "\n"
+            columns = "'" + "', '".join(quote.keys())
+            placeholders = ':'+', :'.join(quote.keys())
+    outfile = open(make_filename(quote["Symbol"], "D:\StockData\\" + datetime.datetime.today().strftime('%Y-%m-%d')), "w")
+    outfile.write(content)
+    outfile.close()
 
-    query = 'INSERT INTO stock_data (%s) VALUES (%s)' % (columns + "'", placeholders)
-    print(query)
-    cur.execute(query, quote)
+    # query = 'INSERT INTO stock_data (%s) VALUES (%s)' % (columns + "'", placeholders)
+    # print(query)
+    # cur.execute(query, quote)
 
         # variable_1 = "HELLO"
         # variable_2 = "ADIOS"
